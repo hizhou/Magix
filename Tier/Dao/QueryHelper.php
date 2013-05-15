@@ -59,8 +59,8 @@ class QueryHelper {
 		return $stmt->fetchAll(\PDO::FETCH_COLUMN);
 	}
 
-	public function getColumn($tableName, $columns = null, $selection = null, $selectionArgs = null) {
-		$sql = $this->_buildQuerySql($tableName, $columns, $selection, null, null, null, 1);
+	public function getColumn($tableName, $columns = null, $selection = null, $selectionArgs = null, $orderBy = null) {
+		$sql = $this->_buildQuerySql($tableName, $columns, $selection, null, null, $orderBy, 1);
 		$stmt = $this->_connection->prepare($sql);
 		$this->_bindParams($stmt, $selectionArgs);
 		$stmt->execute();

@@ -21,6 +21,6 @@ class BaseFactory {
 	}
 
 	protected function __clone() {
-		throw new RuntimeException('You can not copy this object.');
+		throw new \RuntimeException('You can not copy this object.');
 	}
 }
