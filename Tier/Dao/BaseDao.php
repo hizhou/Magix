@@ -8,23 +8,28 @@ abstract class BaseDao {
 	private $_queryHelper;
 	private $_sqlHelper;
 	
-	protected $_connection;
+	/**
+	 * @return \PDO
+	 */
+	abstract public function getReadConnection();
 
 	/**
-	 * @return PDO
+	 * @return \PDO
 	 */
-	abstract public function getConnection();
+	abstract public function getWriteConnection();
 
+	/*
 	public function setConnection($conn) {
 		$this->_connection = $conn;
 	}
+	*/
 
 	/**
 	 * @return QueryHelper
 	 */
 	public function getQueryHelper() {
 		if (!$this->_queryHelper) {
-			$this->_queryHelper = new QueryHelper($this->getConnection());
+			$this->_queryHelper = new QueryHelper($this->getReadConnection(), $this->getWriteConnection());
 		}
 		return $this->_queryHelper;
 	}
