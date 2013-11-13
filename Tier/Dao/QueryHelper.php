@@ -6,12 +6,19 @@ class QueryHelper {
 	/**
 	 * @var \PDO
 	 */
-	private $_connection;
+	private $readConn;
+	
+	/**
+	 * @var \PDO
+	 */
+	private $writeConn;
+	
 	
 	private $_queryKey = null;
 
-	public function __construct(\PDO $connection) {
-		$this->_connection = $connection;
+	public function __construct(\PDO $readConn, \PDO $writeConn = null) {
+		$this->readConn = $readConn;
+		$this->writeConn = $writeConn ? $writeConn : $readConn;
 	}
 
 	/**
@@ -33,7 +40,7 @@ class QueryHelper {
 
 	public function query($tableName, $columns = null, $selection = null, $selectionArgs = null, $groupBy = null, $having = null, $orderBy = null, $limit = null, $offset = null) {
 		$sql = $this->_buildQuerySql($tableName, $columns, $selection, $groupBy, $having, $orderBy, $limit, $offset);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->readConn->prepare($sql);
 		$this->_bindParams($stmt, $selectionArgs);
 		$stmt->execute();
 		$records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
@@ -53,7 +60,7 @@ class QueryHelper {
 	
 	public function listColumn($tableName, $columns = null, $selection = null, $selectionArgs = null, $groupBy = null, $having = null, $orderBy = null, $limit = null, $offset = null) {
 		$sql = $this->_buildQuerySql($tableName, $columns, $selection, $groupBy, $having, $orderBy, $limit, $offset);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->readConn->prepare($sql);
 		$this->_bindParams($stmt, $selectionArgs);
 		$stmt->execute();
 		return $stmt->fetchAll(\PDO::FETCH_COLUMN);
@@ -61,7 +68,7 @@ class QueryHelper {
 
 	public function getColumn($tableName, $columns = null, $selection = null, $selectionArgs = null, $orderBy = null) {
 		$sql = $this->_buildQuerySql($tableName, $columns, $selection, null, null, $orderBy, 1);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->readConn->prepare($sql);
 		$this->_bindParams($stmt, $selectionArgs);
 		$stmt->execute();
 		return $stmt->fetchColumn();
@@ -69,17 +76,25 @@ class QueryHelper {
 
 	public function get($tableName, $columns = null, $selection = null, $selectionArgs = null, $orderBy = null) {
 		$sql = $this->_buildQuerySql($tableName, $columns, $selection, null, null, $orderBy, 1);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->readConn->prepare($sql);
 		$this->_bindParams($stmt, $selectionArgs);
 		$stmt->execute();
 		$row = $stmt->fetch(\PDO::FETCH_ASSOC);
 		return !empty($row) ? $row : null;
 	}
 
+	public function count($tableName, $column = null, $whereClause = null, $whereArgs = null) {
+		$sql = $this->_buildCountSql($tableName, $column, $whereClause);
+		$stmt = $this->readConn->prepare($sql);
+		$this->_bindParams($stmt, $whereArgs);
+		$stmt->execute();
+		return intval($stmt->fetchColumn());
+	}
+
 	public function update($tableName, $values, $whereClause = null, $whereArgs = null, $incrementedValues = null) {
 		$sql = $this->_buildUpdateSql($tableName, $values, $incrementedValues, $whereClause);
 		
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->writeConn->prepare($sql);
 		$this->_bindParams($stmt, $values);
 		$this->_bindParams($stmt, $whereArgs, count($values));
 		if (!$stmt->execute())
@@ -89,27 +104,19 @@ class QueryHelper {
 
 	public function insert($table, Array $values) {
 		$sql = $this->_buildInsertSql($table, $values);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->writeConn->prepare($sql);
 		$this->_bindParams($stmt, $values);
 		$stmt->execute();
-		$lastInsertId = $this->_connection->lastInsertId();
+		$lastInsertId = $this->writeConn->lastInsertId();
 		return $lastInsertId ? $lastInsertId : $stmt->rowCount();
 	}
 
 	public function delete($table, $whereClause = null, $whereArgs = null) {
 		$sql = $this->_buildDeleteSql($table, $whereClause);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->writeConn->prepare($sql);
 		$this->_bindParams($stmt, $whereArgs);
 		$stmt->execute();
 		return $stmt->rowCount();
-	}
-
-	public function count($tableName, $column = null, $whereClause = null, $whereArgs = null) {
-		$sql = $this->_buildCountSql($tableName, $column, $whereClause);
-		$stmt = $this->_connection->prepare($sql);
-		$this->_bindParams($stmt, $whereArgs);
-		$stmt->execute();
-		return intval($stmt->fetchColumn());
 	}
 	
 	/**
@@ -123,7 +130,7 @@ class QueryHelper {
 	 */
 	public function increase($tableName, array $incrementedValues, $whereClause = null, $whereArgs = null) {
 		$sql = $this->_buildUpdateSql($tableName, array(), $incrementedValues, $whereClause);
-		$stmt = $this->_connection->prepare($sql);
+		$stmt = $this->writeConn->prepare($sql);
 		$this->_bindParams($stmt, $whereArgs);
 		$stmt->execute();
 		return $stmt->rowCount();
@@ -136,8 +143,8 @@ class QueryHelper {
 	 * @return boolean
 	 */
 	public function isTableExist($tableName) {
-		$sql = "SHOW TABLES LIKE " . $this->_connection->quote($tableName);
-		$stmt = $this->_connection->prepare($sql);
+		$sql = "SHOW TABLES LIKE " . $this->readConn->quote($tableName);
+		$stmt = $this->readConn->prepare($sql);
 		$stmt->execute();
 		return (bool) $stmt->fetchColumn();
 	}

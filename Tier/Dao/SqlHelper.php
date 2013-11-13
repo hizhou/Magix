@@ -23,18 +23,11 @@ class SqlHelper {
 	/**
 	 * help building in sql
 	 * 
-	 * @param \PDO $connection
-	 * @param $dataArr
+	 * @param $dataArr array
 	 * @return string
 	 */
-	public function buildInClause(\PDO $connection, $dataArr) {
-		if (!is_array($dataArr)) return " IN (" . $connection->quote($dataArr) . ")";
-		if (!count($dataArr)) return " IN ('')";
-		$imploded = array();
-		foreach ($dataArr as $value) {
-			$imploded[] = $connection->quote($value);
-		}
-		return " IN (" . implode(", ", $imploded) . ")";
+	public function in($dataArr) {
+		return str_repeat('?,', count($dataArr) - 1) . '?';
 	}
 	
 	/**
